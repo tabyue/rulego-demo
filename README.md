@@ -1,38 +1,63 @@
-# RuleGo Demo - 规则引擎命令路由示例
+# RuleGo Demo v2 - 规则引擎命令路由 + 自然语言意图识别
 
-基于 [RuleGo](https://github.com/rulego/rulego) 实现的规则引擎示例项目。输入不同的字符串命令，通过 **规则链路由** 分发到不同的处理逻辑（JS 脚本计算、文本转换、系统信息获取等）。
+基于 [RuleGo](https://github.com/rulego/rulego) v0.35.0 实现的规则引擎示例项目。
 
-## 功能概览
+**v2 核心特性：支持自然语言输入！** 直接说"走几步"、"帮我算3加5"、"讲个笑话"，规则引擎通过 JS 脚本做关键词匹配和意图识别，路由到对应处理逻辑。
 
-| 命令 | 说明 | 示例输入 |
-|------|------|----------|
+## 功能演示
+
+### 自然语言模式 🗣️
+
+| 你说的话 | 识别意图 | 响应示例 |
+|---------|---------|---------|
+| `你好` / `hello` / `早上好` | greet | 你好呀！很高兴见到你 👋 |
+| `走几步` / `跳个舞` / `表演一个` | action | 🚶 走几步... 踢踏踢踏~ 哒哒哒！ |
+| `现在几点` / `今天星期几` | time | 🕐 现在是 2026-04-02 📅 星期四 |
+| `帮我算3加5` / `10乘20等于多少` | calc | 🔢 3 + 5 = 8 |
+| `系统信息` / `看看状态` | sysinfo | 💻 主机: xxx, 引擎: RuleGo v0.35.0 |
+| `转换大写` / `反转文本` | transform | 🔄 大写: HELLO, 反转: oGeluR |
+| `执行 echo hello` / `运行 date` | exec | ⚡ 执行: echo hello → hello |
+| `讲个笑话` / `逗我一下` | joke | 😄 为什么程序员分不清万圣节和圣诞节... |
+| `帮助` / `怎么用` | help | 📖 使用指南 |
+| 其他任意输入 | unknown | 🤔 抱歉，没理解... |
+
+### 结构化命令模式 ⚡
+
+| 命令 | 说明 | 示例 |
+|------|------|------|
 | `greet` | 生成问候语 | `{"command":"greet","name":"Alice"}` |
 | `calc` | 四则运算 | `{"command":"calc","a":10,"b":20,"op":"add"}` |
-| `time` | 获取服务器时间 | `{"command":"time"}` |
-| `sysinfo` | 获取系统信息 | `{"command":"sysinfo"}` |
-| `transform` | 文本转换（大写/小写/反转/长度） | `{"command":"transform","text":"hello","mode":"upper"}` |
-| 其他 | 返回未知命令提示 | `{"command":"foobar"}` |
+| `time` | 服务器时间 | `{"command":"time"}` |
+| `sysinfo` | 系统信息 | `{"command":"sysinfo"}` |
+| `transform` | 文本转换 | `{"command":"transform","text":"hello","mode":"upper"}` |
 
-## 架构说明
+## 架构
 
 ```
-输入字符串
+用户输入 (自然语言 / 结构化命令)
     │
-    ▼
-┌─────────────┐
-│  jsSwitch   │  ← 根据 command 字段路由
-│  命令路由器  │
-└─────┬───────┘
-      │
-  ┌───┴───┬───────┬─────────┬───────────┬─────────┐
-  ▼       ▼       ▼         ▼           ▼         ▼
-greet   calc    time    sysinfo   transform  unknown
-  │       │       │         │           │         │
-  ▼       ▼       ▼         ▼           ▼         ▼
-┌─────────────────────────────────────────────────────┐
-│              log 节点 - 统一记录结果                  │
-└─────────────────────────────────────────────────────┘
+    ├─ 自然语言 ──→ nlp_chain.json
+    │                  │
+    │              jsSwitch (关键词意图识别)
+    │                  │
+    │    ┌──────┬──────┼──────┬──────┬──────┬──────┬──────┬──────┐
+    │    ▼      ▼      ▼      ▼      ▼      ▼      ▼      ▼      ▼
+    │  greet action  time   calc  sysinfo transform exec  joke  help
+    │    │      │      │      │      │      │       │      │      │
+    │    └──────┴──────┴──────┴──────┴──────┴───────┴──────┴──────┘
+    │                          │
+    │                     log (记录)
+    │
+    └─ 结构化命令 ──→ router_chain.json
+                       │
+                   jsSwitch (精确匹配)
+                       │
+           ┌───────┬───┴───┬─────────┬───────────┐
+           ▼       ▼       ▼         ▼           ▼
+         greet   calc    time    sysinfo    transform
 ```
+
+**所有业务逻辑都在 JSON 规则链的 JS 脚本中实现，修改规则无需改 Go 代码！**
 
 ## 快速开始
 
@@ -41,93 +66,75 @@ greet   calc    time    sysinfo   transform  unknown
 - Go 1.21+
 - Git
 
-### 1. 克隆项目
+### 1. 克隆并运行
 
 ```bash
 git clone https://github.com/tabyue/rulego-demo.git
 cd rulego-demo
-```
-
-### 2. 安装依赖
-
-```bash
 go mod tidy
 ```
 
-### 3. 运行方式
-
-项目支持三种运行模式：
-
-#### 模式一：HTTP 服务器（推荐用于服务器部署）
+### 2. 四种运行模式
 
 ```bash
+# HTTP 服务器（默认）- 启动 Web UI + REST API
 go run main.go
-```
 
-启动后访问 `http://localhost:8080` 打开 Web UI，或使用 curl 调用 API。
+# 自然语言对话模式 - 终端直接聊天
+go run main.go chat
 
-**自定义端口：**
-```bash
-PORT=3000 go run main.go
-```
+# 结构化命令模式 - 传统 CLI
+go run main.go cli
 
-#### 模式二：内置测试（快速验证）
-
-```bash
+# 内置测试 - 自动跑 20 个测试用例
 go run main.go test
 ```
 
-自动运行 10 个预设测试用例，输出通过/失败结果。
-
-#### 模式三：交互式 CLI
-
-```bash
-go run main.go cli
-```
-
-在终端交互式输入命令进行测试。
-
 ## API 接口
 
-### POST /api/execute
-
-执行命令：
+### POST /api/chat - 自然语言输入（推荐）
 
 ```bash
-# 问候
-curl -X POST http://localhost:8080/api/execute \
+# 走几步
+curl -X POST http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"command":"greet","name":"World"}'
+  -d '{"input":"走几步"}'
 
-# 计算
+# 帮我算
+curl -X POST http://localhost:8080/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"input":"帮我算3加5"}'
+
+# 讲笑话
+curl -X POST http://localhost:8080/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"input":"讲个笑话"}'
+
+# 执行命令
+curl -X POST http://localhost:8080/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"input":"执行 echo hello world"}'
+```
+
+### POST /api/execute - 结构化命令
+
+```bash
 curl -X POST http://localhost:8080/api/execute \
   -H "Content-Type: application/json" \
   -d '{"command":"calc","a":42,"b":8,"op":"mul"}'
-
-# 获取时间
-curl -X POST http://localhost:8080/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command":"time"}'
-
-# 系统信息
-curl -X POST http://localhost:8080/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command":"sysinfo"}'
-
-# 文本转换
-curl -X POST http://localhost:8080/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command":"transform","text":"Hello RuleGo","mode":"reverse"}'
-
-# 未知命令
-curl -X POST http://localhost:8080/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command":"foobar"}'
 ```
 
-### GET /api/health
+### POST /api/exec - 直接执行 Shell 命令
 
-健康检查：
+```bash
+curl -X POST http://localhost:8080/api/exec \
+  -H "Content-Type: application/json" \
+  -d '{"cmd":"echo hello"}'
+```
+
+> ⚠️ Shell 执行有白名单安全控制，仅允许 echo/date/whoami/hostname 等安全命令。
+
+### GET /api/health - 健康检查
 
 ```bash
 curl http://localhost:8080/api/health
@@ -138,142 +145,85 @@ curl http://localhost:8080/api/health
 ### 方式一：直接编译部署
 
 ```bash
-# 编译（Linux 服务器）
+# 交叉编译 Linux 版
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o rulego-demo .
 
-# 上传到服务器
+# 上传
 scp rulego-demo rules/ user@server:/opt/rulego-demo/
 
-# 在服务器上运行
-ssh user@server
+# 在服务器上
 cd /opt/rulego-demo
 chmod +x rulego-demo
-
-# 先跑测试
-./rulego-demo test
-
-# 启动服务
+./rulego-demo test              # 先跑测试
 PORT=8080 nohup ./rulego-demo > app.log 2>&1 &
 ```
 
-### 方式二：Docker 部署
+### 方式二：Docker
 
 ```bash
-# 构建镜像
 docker build -t rulego-demo .
-
-# 运行容器
 docker run -d -p 8080:8080 --name rulego-demo rulego-demo
-
-# 查看日志
-docker logs -f rulego-demo
 ```
 
-### 方式三：systemd 服务（Linux 推荐）
-
-创建服务文件 `/etc/systemd/system/rulego-demo.service`：
+### 方式三：systemd 服务
 
 ```ini
+# /etc/systemd/system/rulego-demo.service
 [Unit]
-Description=RuleGo Demo Service
+Description=RuleGo Demo
 After=network.target
 
 [Service]
 Type=simple
-User=www-data
 WorkingDirectory=/opt/rulego-demo
 ExecStart=/opt/rulego-demo/rulego-demo
 Restart=always
-RestartSec=5
 Environment=PORT=8080
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-启用并启动服务：
-
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable rulego-demo
-sudo systemctl start rulego-demo
-sudo systemctl status rulego-demo
+sudo systemctl enable --now rulego-demo
 ```
 
 ## 运行测试
 
-### 单元测试
-
 ```bash
+# Go 单元测试（包含 NLP + 结构化 + HTTP + Shell 执行测试）
 go test -v ./...
-```
 
-### 内置集成测试
-
-```bash
+# 内置集成测试（20 个用例）
 go run main.go test
-```
-
-### curl 一键验证脚本
-
-```bash
-#!/bin/bash
-BASE="http://localhost:8080"
-
-echo "=== Health Check ==="
-curl -s $BASE/api/health | jq .
-
-echo -e "\n=== Greet ==="
-curl -s -X POST $BASE/api/execute -H "Content-Type: application/json" \
-  -d '{"command":"greet","name":"Test"}' | jq .
-
-echo -e "\n=== Calc ==="
-curl -s -X POST $BASE/api/execute -H "Content-Type: application/json" \
-  -d '{"command":"calc","a":100,"b":3,"op":"div"}' | jq .
-
-echo -e "\n=== Time ==="
-curl -s -X POST $BASE/api/execute -H "Content-Type: application/json" \
-  -d '{"command":"time"}' | jq .
-
-echo -e "\n=== Transform ==="
-curl -s -X POST $BASE/api/execute -H "Content-Type: application/json" \
-  -d '{"command":"transform","text":"RuleGo Demo","mode":"reverse"}' | jq .
-
-echo -e "\n=== Unknown ==="
-curl -s -X POST $BASE/api/execute -H "Content-Type: application/json" \
-  -d '{"command":"unknown_cmd"}' | jq .
-
-echo -e "\nAll tests done!"
 ```
 
 ## 项目结构
 
 ```
 rulego-demo/
-├── main.go              # 主程序（HTTP服务器 + CLI + 内置测试）
+├── main.go              # 主程序（HTTP + Chat + CLI + Test 四种模式）
 ├── main_test.go         # Go 单元测试
-├── go.mod               # Go 模块定义
-├── go.sum               # 依赖校验
-├── Dockerfile           # Docker 构建文件
+├── go.mod / go.sum
+├── Dockerfile
 ├── .gitignore
 ├── README.md
-└── rules/               # 规则链定义（JSON）
-    ├── router_chain.json    # 主路由链 - jsSwitch 根据命令分发
-    ├── greeting_chain.json  # 问候处理链
-    └── calc_chain.json      # 计算处理链
+└── rules/
+    ├── nlp_chain.json       # ⭐ 自然语言意图识别链（关键词匹配 → 9 种意图）
+    ├── router_chain.json    # 结构化命令路由链
+    ├── greeting_chain.json  # 问候子链
+    └── calc_chain.json      # 计算子链
 ```
 
-## 规则链说明
+## 如何扩展
 
-### router_chain.json（核心）
+想增加新的自然语言意图？只需编辑 `rules/nlp_chain.json`：
 
-主路由链使用 `jsSwitch` 节点根据输入的 `command` 字段值将消息路由到不同的 `jsTransform` 处理节点：
+1. 在 `jsSwitch` 的 `rules` 数组中添加新规则（关键词 + 路由名）
+2. 添加新的 `jsTransform` 节点处理该意图
+3. 添加对应的 `connection`
 
-- **s1 (jsSwitch)**: 解析 command，返回对应路由名
-- **s2~s7 (jsTransform)**: 各命令的具体处理逻辑（JS 脚本实现）
-- **s8 (log)**: 统一记录处理结果
-
-所有业务逻辑通过 JSON 配置的 JS 脚本实现，**无需修改 Go 代码即可调整业务规则**。
+**无需修改任何 Go 代码，无需重新编译！**（运行时可通过 API 热更新规则链）
 
 ## License
 

@@ -1,0 +1,142 @@
+{
+  "ruleChain": {
+    "id": "nlp_chain",
+    "name": "自然语言意图识别链 - 通过关键词匹配识别用户意图",
+    "debugMode": true
+  },
+  "metadata": {
+    "firstNodeIndex": 0,
+    "nodes": [
+      {
+        "id": "s1",
+        "type": "jsSwitch",
+        "name": "意图识别路由",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var input = (msg.input || '').toLowerCase(); var rules = [ { keys: ['执行','运行命令','shell','exec ','run ','cmd ','terminal'], route: 'exec' }, { keys: ['帮助','help','怎么用','用法','说明','usage','what can','能做什么','功能','menu','菜单'], route: 'help' }, { keys: ['走几步','走两步','跳个舞','表演','才艺','show me','dance','perform','walk','动一下','秀一个'], route: 'action' }, { keys: ['笑话','joke','搞笑','有趣','funny','讲个','段子','逗我'], route: 'joke' }, { keys: ['几点','时间','什么时候','date','time','now','现在','当前时间','几号','星期几','today'], route: 'time' }, { keys: ['算','计算','加','减','乘','除','多少','calc','compute','math','sum','+','-','*','/','等于'], route: 'calc' }, { keys: ['系统','信息','状态','版本','hostname','sysinfo','system info','服务器','machine'], route: 'sysinfo' }, { keys: ['大写','小写','反转','翻转','转换','transform','upper','lower','reverse','变换','长度'], route: 'transform' }, { keys: ['你好','hello','hi','嗨','hey','早上好','下午好','晚上好','good morning','good evening','打招呼','问好','greet'], route: 'greet' } ]; for (var i = 0; i < rules.length; i++) { for (var j = 0; j < rules[i].keys.length; j++) { if (input.indexOf(rules[i].keys[j]) !== -1) return [rules[i].route]; } } return ['unknown'];"
+        }
+      },
+      {
+        "id": "s2",
+        "type": "jsTransform",
+        "name": "问候回应",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var greetings = ['你好呀！很高兴见到你 👋','Hello！有什么可以帮你的吗？','嗨！今天过得怎么样？','Hey there! Welcome! 🎉','你好！我是 RuleGo Demo，随时为你服务！']; msg.result = greetings[Math.floor(Math.random() * greetings.length)]; msg.matched_intent = 'greet'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s3",
+        "type": "jsTransform",
+        "name": "走几步/表演动作",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var actions = [ '🚶 走几步... 踢踏踢踏~ 哒哒哒！走完了！', '💃 扭一扭~ 转个圈~ 比个心 ❤️ 表演完毕！', '🤖 滴滴滴...启动舞蹈模块... 🕺 左摇右摆~ 太空步~ Moonwalk！', '🏃 起步...加速...冲刺！跑了 100 米！用时 0.001 秒（光速级）', '🎭 清嗓... 啊~啊~啊~ 给你唱首歌：01001000 01101001~ (二进制之歌)', '🐧 企鹅步~ 摇摇摆摆~ 滑一下~ 完美着陆！', '🤸 前空翻！后空翻！侧空翻！360度转体！裁判打分：10.0！' ]; msg.result = actions[Math.floor(Math.random() * actions.length)]; msg.matched_intent = 'action'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s4",
+        "type": "jsTransform",
+        "name": "获取时间",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var now = new Date(); var days = ['日','一','二','三','四','五','六']; msg.result = '🕐 现在是 ' + now.toISOString() + '\\n📅 星期' + days[now.getDay()]; msg.matched_intent = 'time'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s5",
+        "type": "jsTransform",
+        "name": "智能计算",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var input = msg.input || ''; var nums = input.match(/[\\d.]+/g); var result = ''; if (nums && nums.length >= 2) { var a = parseFloat(nums[0]); var b = parseFloat(nums[1]); if (input.indexOf('+') !== -1 || input.indexOf('加') !== -1) { result = a + ' + ' + b + ' = ' + (a + b); } else if (input.indexOf('-') !== -1 || input.indexOf('减') !== -1) { result = a + ' - ' + b + ' = ' + (a - b); } else if (input.indexOf('*') !== -1 || input.indexOf('乘') !== -1 || input.indexOf('x') !== -1) { result = a + ' × ' + b + ' = ' + (a * b); } else if (input.indexOf('/') !== -1 || input.indexOf('除') !== -1) { result = b !== 0 ? a + ' ÷ ' + b + ' = ' + (a / b) : '除数不能为零！'; } else { result = a + ' + ' + b + ' = ' + (a + b) + ' (默认加法)'; } } else if (nums && nums.length === 1) { result = '检测到数字 ' + nums[0] + '，请提供第二个数字和运算符'; } else { result = '请输入类似 \"3加5\" 或 \"10*20\" 的算式'; } msg.result = '🔢 ' + result; msg.matched_intent = 'calc'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s6",
+        "type": "jsTransform",
+        "name": "系统信息",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "msg.result = '💻 系统信息:\\n  主机: ' + (metadata.hostname || 'unknown') + '\\n  引擎: RuleGo v0.35.0\\n  模式: 自然语言意图识别\\n  时间: ' + new Date().toISOString(); msg.matched_intent = 'sysinfo'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s7",
+        "type": "jsTransform",
+        "name": "文本转换",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var input = msg.input || ''; var text = input.replace(/.*[转变].*[大小写换]|大写|小写|反转|翻转|长度/g, '').trim(); if (!text || text === input) text = 'Hello RuleGo'; var results = []; results.push('大写: ' + text.toUpperCase()); results.push('小写: ' + text.toLowerCase()); results.push('反转: ' + text.split('').reverse().join('')); results.push('长度: ' + text.length + ' 字符'); msg.result = '🔄 文本转换结果:\\n  原文: ' + text + '\\n  ' + results.join('\\n  '); msg.matched_intent = 'transform'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s8",
+        "type": "jsTransform",
+        "name": "命令执行提示",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var input = msg.input || ''; var cmdMatch = input.match(/(?:执行|运行|exec|run|cmd)\\s+(.+)/i); var shellCmd = cmdMatch ? cmdMatch[1].trim() : ''; if (shellCmd) { msg.result = '⚡ 检测到命令请求: \"' + shellCmd + '\"\\n📌 出于安全考虑，命令将通过 Go 后端执行\\n🔑 请使用 API: POST /api/exec {\"cmd\": \"' + shellCmd + '\"}'; msg.shell_cmd = shellCmd; } else { msg.result = '⚡ 命令执行模式\\n用法: \"执行 ls -la\" 或 \"run echo hello\"\\n支持: echo, date, whoami, hostname, uname, ls, dir, ping 等安全命令'; } msg.matched_intent = 'exec'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s9",
+        "type": "jsTransform",
+        "name": "讲笑话",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var jokes = [ '为什么程序员总是分不清万圣节和圣诞节？\\n因为 Oct 31 = Dec 25 🎃🎄', '一个 SQL 语句走进酒吧，看到两张桌子，走过去问：\\n\"Can I JOIN you?\" 🍻', 'Java 程序员为什么戴眼镜？\\n因为他们看不到 C# (see sharp) 👓', '世界上最遥远的距离不是生与死，\\n而是你写的代码只有你自己能看懂... 三天后连你也看不懂了 💀', '为什么 Go 语言没有泛型？\\n等等...现在有了，但这个笑话已经不好笑了 😅', 'Bug 和 Feature 有什么区别？\\n取决于你是开发者还是产品经理 🐛✨', '一个 TCP 包走进酒吧说：\"我想要一杯啤酒\"\\n酒保说：\"你要一杯啤酒？\"\\nTCP 包说：\"是的，我要一杯啤酒\" 🍺' ]; msg.result = '😄 ' + jokes[Math.floor(Math.random() * jokes.length)]; msg.matched_intent = 'joke'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s10",
+        "type": "jsTransform",
+        "name": "帮助信息",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "msg.result = '📖 RuleGo 自然语言 Demo - 使用指南\\n\\n你可以用自然语言和我对话，比如:\\n\\n  🗣️ \"你好\" → 打招呼\\n  🚶 \"走几步\" → 看我表演\\n  🕐 \"现在几点\" → 查看时间\\n  🔢 \"3加5等于多少\" → 计算\\n  💻 \"系统信息\" → 查看状态\\n  🔄 \"把hello转大写\" → 文本转换\\n  ⚡ \"执行 echo hello\" → 执行命令\\n  😄 \"讲个笑话\" → 开心一下\\n  ❓ \"帮助\" → 显示本菜单\\n\\n💡 所有路由逻辑都在 JSON 规则链中通过 JS 脚本实现，无需改 Go 代码！'; msg.matched_intent = 'help'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s11",
+        "type": "jsTransform",
+        "name": "无法识别",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "msg.result = '🤔 抱歉，我没有理解 \"' + (msg.input || '') + '\" 的意思\\n\\n💡 试试说：\\n  - \"你好\" / \"走几步\" / \"几点了\"\\n  - \"帮我算 3加5\" / \"讲个笑话\"\\n  - \"帮助\" 查看所有功能'; msg.matched_intent = 'unknown'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s12",
+        "type": "log",
+        "name": "记录结果",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "return '[NLP] intent=' + (msg.matched_intent || '?') + ' | input=' + (msg.input || '') + ' | result=' + (msg.result || '').substring(0, 80);"
+        }
+      }
+    ],
+    "connections": [
+      {"fromId": "s1", "toId": "s2", "type": "greet"},
+      {"fromId": "s1", "toId": "s3", "type": "action"},
+      {"fromId": "s1", "toId": "s4", "type": "time"},
+      {"fromId": "s1", "toId": "s5", "type": "calc"},
+      {"fromId": "s1", "toId": "s6", "type": "sysinfo"},
+      {"fromId": "s1", "toId": "s7", "type": "transform"},
+      {"fromId": "s1", "toId": "s8", "type": "exec"},
+      {"fromId": "s1", "toId": "s9", "type": "joke"},
+      {"fromId": "s1", "toId": "s10", "type": "help"},
+      {"fromId": "s1", "toId": "s11", "type": "unknown"},
+      {"fromId": "s2", "toId": "s12", "type": "Success"},
+      {"fromId": "s3", "toId": "s12", "type": "Success"},
+      {"fromId": "s4", "toId": "s12", "type": "Success"},
+      {"fromId": "s5", "toId": "s12", "type": "Success"},
+      {"fromId": "s6", "toId": "s12", "type": "Success"},
+      {"fromId": "s7", "toId": "s12", "type": "Success"},
+      {"fromId": "s8", "toId": "s12", "type": "Success"},
+      {"fromId": "s9", "toId": "s12", "type": "Success"},
+      {"fromId": "s10", "toId": "s12", "type": "Success"},
+      {"fromId": "s11", "toId": "s12", "type": "Success"}
+    ]
+  }
+}

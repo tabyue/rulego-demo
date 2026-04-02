@@ -1,0 +1,98 @@
+{
+  "ruleChain": {
+    "id": "router_chain",
+    "name": "主路由链 - 根据输入字符串路由到不同处理分支",
+    "debugMode": true
+  },
+  "metadata": {
+    "firstNodeIndex": 0,
+    "nodes": [
+      {
+        "id": "s1",
+        "type": "jsSwitch",
+        "name": "命令路由器",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var cmd = msg.command || ''; if (cmd === 'greet') return ['greet']; else if (cmd === 'calc') return ['calc']; else if (cmd === 'time') return ['time']; else if (cmd === 'sysinfo') return ['sysinfo']; else if (cmd === 'transform') return ['transform']; else return ['unknown'];"
+        }
+      },
+      {
+        "id": "s2",
+        "type": "jsTransform",
+        "name": "问候处理",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var name = msg.name || 'World'; msg.result = 'Hello, ' + name + '! Welcome to RuleGo demo.'; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s3",
+        "type": "jsTransform",
+        "name": "计算处理",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var a = msg.a || 0; var b = msg.b || 0; var op = msg.op || 'add'; var result = 0; switch(op) { case 'add': result = a + b; break; case 'sub': result = a - b; break; case 'mul': result = a * b; break; case 'div': result = b !== 0 ? a / b : 'Error: division by zero'; break; default: result = 'Unknown op: ' + op; } msg.result = a + ' ' + op + ' ' + b + ' = ' + result; msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s4",
+        "type": "jsTransform",
+        "name": "获取时间",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "msg.result = 'Current server time: ' + new Date().toISOString(); msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s5",
+        "type": "jsTransform",
+        "name": "系统信息",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "msg.result = 'RuleGo Demo v1.0 | Go Rule Engine | Running on: ' + (metadata.hostname || 'unknown'); msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s6",
+        "type": "jsTransform",
+        "name": "文本转换",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var text = msg.text || ''; var mode = msg.mode || 'upper'; switch(mode) { case 'upper': msg.result = text.toUpperCase(); break; case 'lower': msg.result = text.toLowerCase(); break; case 'reverse': msg.result = text.split('').reverse().join(''); break; case 'length': msg.result = 'Length: ' + text.length; break; default: msg.result = text; } msg.status = 'success'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s7",
+        "type": "jsTransform",
+        "name": "未知命令",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "msg.result = 'Unknown command: ' + (msg.command || '') + '. Available commands: greet, calc, time, sysinfo, transform'; msg.status = 'error'; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s8",
+        "type": "log",
+        "name": "记录结果",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "return '[RESULT] command=' + (msg.command || '') + ' | status=' + (msg.status || '') + ' | result=' + (msg.result || '');"
+        }
+      }
+    ],
+    "connections": [
+      {"fromId": "s1", "toId": "s2", "type": "greet"},
+      {"fromId": "s1", "toId": "s3", "type": "calc"},
+      {"fromId": "s1", "toId": "s4", "type": "time"},
+      {"fromId": "s1", "toId": "s5", "type": "sysinfo"},
+      {"fromId": "s1", "toId": "s6", "type": "transform"},
+      {"fromId": "s1", "toId": "s7", "type": "unknown"},
+      {"fromId": "s2", "toId": "s8", "type": "Success"},
+      {"fromId": "s3", "toId": "s8", "type": "Success"},
+      {"fromId": "s4", "toId": "s8", "type": "Success"},
+      {"fromId": "s5", "toId": "s8", "type": "Success"},
+      {"fromId": "s6", "toId": "s8", "type": "Success"},
+      {"fromId": "s7", "toId": "s8", "type": "Success"}
+    ]
+  }
+}

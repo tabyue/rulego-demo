@@ -1,0 +1,37 @@
+{
+  "ruleChain": {
+    "id": "greeting_chain",
+    "name": "问候处理链",
+    "debugMode": true
+  },
+  "metadata": {
+    "firstNodeIndex": 0,
+    "nodes": [
+      {
+        "id": "s1",
+        "type": "jsTransform",
+        "name": "生成问候语",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var name = msg.name || 'World'; msg.greeting = 'Hello, ' + name + '! Welcome to RuleGo demo.'; msg.timestamp = new Date().toISOString(); return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s2",
+        "type": "log",
+        "name": "打印问候日志",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "return '[GREETING] ' + JSON.stringify(msg);"
+        }
+      }
+    ],
+    "connections": [
+      {
+        "fromId": "s1",
+        "toId": "s2",
+        "type": "Success"
+      }
+    ]
+  }
+}

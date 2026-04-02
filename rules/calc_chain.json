@@ -1,0 +1,37 @@
+{
+  "ruleChain": {
+    "id": "calc_chain",
+    "name": "计算处理链",
+    "debugMode": true
+  },
+  "metadata": {
+    "firstNodeIndex": 0,
+    "nodes": [
+      {
+        "id": "s1",
+        "type": "jsTransform",
+        "name": "执行计算",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var a = msg.a || 0; var b = msg.b || 0; var op = msg.op || 'add'; var result = 0; switch(op) { case 'add': result = a + b; break; case 'sub': result = a - b; break; case 'mul': result = a * b; break; case 'div': result = b !== 0 ? a / b : 'Error: division by zero'; break; default: result = 'Unknown operation: ' + op; } msg.result = result; msg.expression = a + ' ' + op + ' ' + b + ' = ' + result; return {'msg': msg, 'metadata': metadata, 'msgType': msgType};"
+        }
+      },
+      {
+        "id": "s2",
+        "type": "log",
+        "name": "打印计算结果",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "return '[CALC] ' + msg.expression;"
+        }
+      }
+    ],
+    "connections": [
+      {
+        "fromId": "s1",
+        "toId": "s2",
+        "type": "Success"
+      }
+    ]
+  }
+}
